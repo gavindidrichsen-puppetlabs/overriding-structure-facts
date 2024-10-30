@@ -133,3 +133,112 @@ Finished in 0.36417 seconds (files took 0.96797 seconds to load)
 
 root@rocky8-330 overriding-structure-facts (fix_to_override_structured_facts)$ 
 ```
+
+**NOTE**: The above fix was also tested on a module using pdk 3.0.1.  The tests continued to work without any change of output.  See [appendix below](#does-the-above-work-for-pdk-301) for more detail.
+
+## Appendix
+
+### Does the above work for pdk 3.0.1?
+
+Yes, and the following proves that the updates above can be applied to a module tested via pdk 3.0.1 or later.  In effect, if you add the above then yfor a module setup for pdk 3.0.1, then the module will continue to work as expected for pdk 3.0.1 and then for pdk >= 3.3.0 the `Could not retrieve fact networking....` will not appear.
+
+```bash
+# verify the pdk version
+root@rocky8-301 overriding-structure-facts (main)$ pdk --version
+3.0.1
+root@rocky8-301 overriding-structure-facts (main)$ git checkout original_observation
+
+# add test with the `os_facts.merge(...)` and verify that tests pass without `Could not retrieve...` messages
+root@rocky8-301 test_301 $ cat ../overriding-structure-facts/spec/classes/speed_spec.rb
+# frozen_string_literal: true
+
+require 'spec_helper'
+
+describe 'test_330::speed' do
+  on_supported_os.each do |os, os_facts|
+    context "on #{os}" do
+      let(:facts) { os_facts.merge(networking:{interfaces: { eth0: { bindings: [{address: '10.10.10.10'},]}}}) }
+      it { is_expected.to compile.with_all_deps }
+    end
+  end
+end
+
+# run the tests
+root@rocky8-301 test_301 $ pdk test unit
+pdk (INFO): Using Ruby 3.2.2
+pdk (INFO): Using Puppet 8.3.1
+[✔] Preparing to run the unit tests.
+/opt/puppetlabs/pdk/private/ruby/3.2.2/bin/ruby -I/root/.pdk/cache/ruby/3.2.0/gems/rspec-core-3.13.2/lib:/root/.pdk/cache/ruby/3.2.0/gems/rspec-support-3.13.1/lib /root/.pdk/cache/ruby/3.2.0/gems/rspec-core-3.13.2/exe/rspec --pattern spec/\{aliases,classes,defines,functions,hosts,integration,plans,tasks,type_aliases,types,unit\}/\*\*/\*_spec.rb --format progress
+Run options: exclude {:bolt=>true}
+.........
+
+Coverage Report:
+
+Total resources:   0
+Touched resources: 0
+Resource coverage: 100.00%
+
+
+Finished in 1.61 seconds (files took 18.41 seconds to load)
+9 examples, 0 failures
+
+# add the spec_helper_local.rb and update the test
+root@rocky8-301 test_301 (master)$ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   spec/classes/speed_spec.rb
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	spec/spec_helper_local.rb
+
+no changes added to commit (use "git add" and/or "git commit -a")
+root@rocky8-301 test_301 (master)$
+```
+
+Verify the change to the test:
+
+```diff
+root@rocky8-301 test_301 (master)$ git diff
+diff --git a/spec/classes/speed_spec.rb b/spec/classes/speed_spec.rb
+index fe88f7e..bfac3a1 100644
+--- a/spec/classes/speed_spec.rb
++++ b/spec/classes/speed_spec.rb
+@@ -5,8 +5,7 @@ require 'spec_helper'
+ describe 'test_301::speed' do
+   on_supported_os.each do |os, os_facts|
+     context "on #{os}" do
+-      let(:facts) { os_facts }
+-
++      let(:facts) { os_facts.merge(networking:{interfaces: { eth0: { bindings: [{address: '10.10.10.10'},]}}}) }
+       it { is_expected.to compile.with_all_deps }
+     end
+   end
+```
+
+Now run the tests
+
+```bash
+root@rocky8-301 test_301 (master)$
+root@rocky8-301 test_301 (master)$
+root@rocky8-301 test_301 (master)$
+root@rocky8-301 test_301 (master)$ pdk test unit
+pdk (INFO): Using Ruby 3.2.2
+pdk (INFO): Using Puppet 8.3.1
+[✔] Preparing to run the unit tests.
+/opt/puppetlabs/pdk/private/ruby/3.2.2/bin/ruby -I/root/.pdk/cache/ruby/3.2.0/gems/rspec-core-3.13.2/lib:/root/.pdk/cache/ruby/3.2.0/gems/rspec-support-3.13.1/lib /root/.pdk/cache/ruby/3.2.0/gems/rspec-core-3.13.2/exe/rspec --pattern spec/\{aliases,classes,defines,functions,hosts,integration,plans,tasks,type_aliases,types,unit\}/\*\*/\*_spec.rb --format progress
+Run options: exclude {:bolt=>true}
+.........
+
+Coverage Report:
+
+Total resources:   0
+Touched resources: 0
+Resource coverage: 100.00%
+
+
+Finished in 1.6 seconds (files took 18.24 seconds to load)
+9 examples, 0 failures
+```
