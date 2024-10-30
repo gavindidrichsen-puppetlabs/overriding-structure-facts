@@ -39,10 +39,18 @@ The solution is to use a more clever approach.  One option is to use a function 
 When overriding a fact in a test, e.g., `let(:facts) { os_facts.merge(networking:{interfaces: { eth0: { bindings: [{address: '10.10.10.10'},]}}}) }`, the `Could not retrieve fact networking....` occurs.  For example, 
 
 ```bash
+# verify the pdk version
+root@rocky8-330 overriding-structure-facts (original_observation)$ pdk --version
+3.3.0
+root@rocky8-330 overriding-structure-facts (original_observation)$ 
+
+# checkout the branch with the original issue
 root@rocky8-330 overriding-structure-facts (fix_to_override_structured_facts)$ git checkout original_observation
 M       README.md
 Switched to branch 'original_observation'
 Your branch is up to date with 'origin/original_observation'.
+
+# view the unit test file
 root@rocky8-330 overriding-structure-facts (original_observation)$ cat spec/classes/speed_spec.rb 
 # frozen_string_literal: true
 
@@ -56,15 +64,8 @@ describe 'test_330::speed' do
     end
   end
 end
-root@rocky8-330 overriding-structure-facts (original_observation)$ 
-root@rocky8-330 overriding-structure-facts (original_observation)$ 
-root@rocky8-330 overriding-structure-facts (original_observation)$ 
-root@rocky8-330 overriding-structure-facts (original_observation)$ pdk --version
-3.3.0
-root@rocky8-330 overriding-structure-facts (original_observation)$ 
-root@rocky8-330 overriding-structure-facts (original_observation)$ 
-root@rocky8-330 overriding-structure-facts (original_observation)$ 
-root@rocky8-330 overriding-structure-facts (original_observation)$ 
+
+# run the unit tests and notice the `Could not retrieve fact networking...`
 root@rocky8-330 overriding-structure-facts (original_observation)$ pdk test unit
 pdk (INFO): Using Ruby 3.2.5
 pdk (INFO): Using Puppet 8.9.0
@@ -95,20 +96,20 @@ Finished in 0.41527 seconds (files took 0.98154 seconds to load)
 root@rocky8-330 overriding-structure-facts (original_observation)$ 
 ```
 
-### The Solution override function.
+### The Solution override function
 
 The fix here is to add 2 override functions and adjust the test as illustrated in the PR <https://github.com/gavindidrichsen-puppetlabs/overriding-structure-facts/pull/1>.  
 
 To see the update fix the output, run the following commands:
 
 ```bash
+# switch to the `fixed` branch
 root@rocky8-330 overriding-structure-facts (original_observation)$ git checkout fix_to_override_structured_facts
-M       README.md
 Switched to branch 'fix_to_override_structured_facts'
 Your branch is up to date with 'origin/fix_to_override_structured_facts'.
 root@rocky8-330 overriding-structure-facts (fix_to_override_structured_facts)$ 
 
-root@rocky8-330 overriding-structure-facts (fix_to_override_structured_facts)$ 
+# run the unit tests and notice the `Could not...` message is gone
 root@rocky8-330 overriding-structure-facts (fix_to_override_structured_facts)$ pdk test unit
 pdk (INFO): Using Ruby 3.2.5
 pdk (INFO): Using Puppet 8.9.0
